@@ -38,7 +38,13 @@ def get_details(venue, date, guests):
 
     data = response.json()
 
-    results = data["results"]
+    results = data.get("results")
+    print(results["venues"][0]["slots"])
+
+    if results == None:
+        print("Incorrect values in config file.")
+        return
+
     if len(results):
         open_slots = results["venues"][0]["slots"]
         res = [slot["date"]["start"] for slot in open_slots]
