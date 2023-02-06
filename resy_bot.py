@@ -33,25 +33,49 @@ def login():
 
 
 
-def get_details(venue, date, guests):
+def get_config_token(venue, date, guests):
     response = requests.get(f'https://api.resy.com/4/find?lat=0&long=0&day={date}&party_size={guests}&venue_id={venue}', headers=headers)
 
     data = response.json()
 
     results = data.get("results")
-    print(results["venues"][0]["slots"])
 
     if results == None:
         print("Incorrect values in config file.")
         return
 
-    if len(results):
-        open_slots = results["venues"][0]["slots"]
-        res = [slot["date"]["start"] for slot in open_slots]
+    open_slots = results["venues"][0]["slots"]
+    avail_times = [slot["date"]["start"] for slot in open_slots]
+    print("AVAILABLE SLOTS\n", avail_times, "\n")
 
-    print("AVAILABLE SLOTS\n \n",res)
+    res = [slot for slot in open_slots]
+    if res:
+        config_data = res[0].get("config") #currently getting first avail time, TODO make dynamic
+        return config_data.get("token")
 
-    return res
+def make_reservation(login_token, date, guests, config_id):
+
+    params = {
+        'config_id': config_id,
+        'day': date,
+        'party_size': guests
+    }
+
+    response = requests.get('https://api.resy.com/3/details', headers=headers, params=params)
+    booking_details = response.json()
+    print(booking_details)
+    if not booking_details.get("book_token"):
+        return
+    else:
+        booking_token = booking_details["book_token"].get("value")
+
+        data = {'book_token': booking_token}
+
+        headers['X-Resy-Auth-Token'] = login_token
+        response = requests.post('https://api.resy.com/3/book', headers=headers, data=data)
+
+        res = response.json()
+        print(res)
 
 def read_config():
     parser = configparser.ConfigParser()
@@ -65,11 +89,15 @@ def read_config():
 def main():
     venue, date, guests = read_config()
 
-    avail_slots = get_details(venue, date, guests)
 
     login_token, payment_method = login()
     if login_token == "error":
         return
+
+    config_id = get_config_token(venue, date, guests)
+    print(config_id)
+
+    make_reservation(login_token, date, guests, config_id)
 
 
 
