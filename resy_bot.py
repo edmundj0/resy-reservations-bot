@@ -1,6 +1,8 @@
 import requests
 import configparser
 import os
+import time, datetime
+import csv
 from dotenv import load_dotenv
 
 #date in YYYY-MM-DD format
@@ -42,16 +44,18 @@ def get_config_token(venue, date, guests):
 
     if results == None:
         print("Incorrect values in config file.")
-        return
+        return "incorrect_config"
 
     open_slots = results["venues"][0]["slots"]
     avail_times = [slot["date"]["start"] for slot in open_slots]
-    print("AVAILABLE SLOTS\n", avail_times, "\n")
+    # print("AVAILABLE SLOTS\n", avail_times, "\n")
 
     res = [slot for slot in open_slots]
     if res:
         config_data = res[0].get("config") #currently getting first avail time, TODO make dynamic
         return config_data.get("token")
+    else:
+        raise Exception("No openings found")
 
 def make_reservation(login_token, date, guests, config_id):
 
@@ -63,9 +67,9 @@ def make_reservation(login_token, date, guests, config_id):
 
     response = requests.get('https://api.resy.com/3/details', headers=headers, params=params)
     booking_details = response.json()
-    print(booking_details)
+    # print(booking_details)
     if not booking_details.get("book_token"):
-        return
+        raise Exception("No booking token")
     else:
         booking_token = booking_details["book_token"].get("value")
 
@@ -75,7 +79,15 @@ def make_reservation(login_token, date, guests, config_id):
         response = requests.post('https://api.resy.com/3/book', headers=headers, data=data)
 
         res = response.json()
-        print(res)
+
+        if res.get("reservation_id"):
+            print("SUCCESS - please login to resy on your browser and check your reservation")
+            return 1
+
+        if res.get("specs"):
+            print("reservation for this spot already exists")
+            print("DETAILS: ", res["specs"])
+            return 1
 
 def read_config():
     parser = configparser.ConfigParser()
@@ -94,11 +106,25 @@ def main():
     if login_token == "error":
         return
 
-    config_id = get_config_token(venue, date, guests)
-    print(config_id)
+    print("Success. Leave running in background. Check attempts.csv for failed attempt logs")
 
-    make_reservation(login_token, date, guests, config_id)
+    isReserved = False
 
+    while isReserved == False:
+        try:
+            config_id = get_config_token(venue, date, guests)
+            if config_id == "incorrect_config": break
+
+            reservation = make_reservation(login_token, date, guests, config_id)
+            if reservation == 1:
+                isReserved = True
+        except Exception as e:
+
+            with open('attempts.csv', "a") as file:
+                write = csv.writer(file)
+                write.writerow([datetime.datetime.now(), "  venue id:  "+venue, e])
+
+            # time.sleep(0.1)
 
 
 main()
