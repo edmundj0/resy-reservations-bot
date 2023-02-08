@@ -1,3 +1,11 @@
+## About this Project
+
+Automatically make reservations on resy.com for hard-to-get restaurants.
+
+TODO (not implemented)
+Ability for table selection. Currently grabs the first availability for given day.
+Ability to reserve with credit card on file.
+
 ## Getting Started
 
 1. Clone this repository
