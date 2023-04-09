@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 #date in YYYY-MM-DD format
 
 headers = {
-    'authorization': 'ResyAPI api_key="VbWk7s3L4KiK5fzlO7JD3Q5EYolJI7n5"',
+    'authorization': 'ResyAPI api_key="VbWk7s3L4KiK5fzlO7JD3Q5EYolJI7n5"', # <---- api key is public and NOT unique (same for all users)
     'content-type': 'application/x-www-form-urlencoded'
 }
 
